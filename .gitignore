@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+
+# Virtual Environment
+tsr/
+venv/
+ENV/
+env/
+.env
+
+# Project specific
+inputs/
+outputs/
+temp/
+*.pt
+*.weights
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+log/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Media files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tiff
+
+# Keep sample/test data
+!inputs/images/.gitkeep
+!inputs/videos/webcam/.gitkeep
+!outputs/images/.gitkeep
+!outputs/videos/webcam/.gitkeep
+!temp/.gitkeep
