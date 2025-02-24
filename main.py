@@ -65,6 +65,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Detection-Results"],
 )
 
 @app.get("/")
@@ -100,7 +101,7 @@ def get_media_type(file_extension):
 @app.post("/predict")
 @limiter.limit("10/minute")
 async def predict(
-    request: Request,  # Add Request parameter
+    request: Request,
     file: UploadFile = File(...),
     mode: str = Form('both'),
     conf_threshold: float = Form(settings.CONFIDENCE_THRESHOLD),
@@ -145,7 +146,7 @@ async def predict(
 
     try:
         # Call the prediction function
-        predict_on_frame(
+        detection_results = predict_on_frame(
             input_path=input_path,
             output_path=os.path.join(output_subdir, os.path.splitext(output_filename)[0]),
             mode=mode,
@@ -158,23 +159,30 @@ async def predict(
     # Determine the response file path based on the type
     if file_extension in ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']:
         response_path = output_path + '.jpg'
+        # For images, return both the file and detection results
+        if not os.path.exists(response_path):
+            raise HTTPException(status_code=500, detail="Output file was not created.")
+        
+        # Return the file with custom headers containing the detection results
+        return FileResponse(
+            response_path,
+            media_type=get_media_type(file_extension) or 'application/octet-stream',
+            headers={
+                "Content-Disposition": f"attachment; filename={os.path.basename(response_path)}",
+                "X-Detection-Results": json.dumps(detection_results)
+            }
+        )
     else:
         response_path = output_path + '.mp4'
-
-    # Clean up the temporary input file
-    os.remove(input_path)
-
-    # Check if the output file was created
-    if not os.path.exists(response_path):
-        raise HTTPException(status_code=500, detail="Output file was not created.")
-
-    # Return the annotated file
-    media_type = get_media_type(file_extension) or 'application/octet-stream'
-    return FileResponse(
-        response_path,
-        media_type=media_type,
-        headers={"Content-Disposition": f"attachment; filename={os.path.basename(response_path)}"}
-    )
+        # For videos, just return the file as before
+        if not os.path.exists(response_path):
+            raise HTTPException(status_code=500, detail="Output file was not created.")
+        
+        return FileResponse(
+            response_path,
+            media_type=get_media_type(file_extension) or 'application/octet-stream',
+            headers={"Content-Disposition": f"attachment; filename={os.path.basename(response_path)}"}
+        )
 
 @app.post("/predict/webcam")
 @limiter.limit("5/minute")
